@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "licenses.db"))
 
-ADMIN_PASSWORD_HASH = hashlib.sha256("admin123".encode()).hexdigest()
+ADMIN_PASSWORD_HASH = hashlib.sha256("alinh7".encode()).hexdigest()
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -79,15 +79,28 @@ class LicenseManager:
             FROM licenses WHERE license_key = ?
         """, (clean_key,))
         row = cursor.fetchone()
-        conn.close()
-
         if not row:
+            conn.close()
             return {"valid": False, "message": "Invalid License Key. Please enter a valid purchased key."}
 
         license_key, client_name, duration_days, expires_at_str, status, saved_device_id = row
 
         if status != 'active':
+            conn.close()
             return {"valid": False, "message": "This license key has been revoked/deactivated."}
+
+        # 1-Device Lock: Bind key to the first device that activates it
+        if device_id:
+            if not saved_device_id:
+                cursor.execute("UPDATE licenses SET device_id = ? WHERE license_key = ?", (device_id, clean_key))
+                conn.commit()
+            elif saved_device_id != device_id:
+                conn.close()
+                return {
+                    "valid": False,
+                    "message": "This license key is already activated on another computer (Single Device Limit). Sharing is not allowed."
+                }
+        conn.close()
 
         try:
             expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S")
@@ -95,12 +108,16 @@ class LicenseManager:
             if now > expires_at:
                 return {"valid": False, "message": f"License expired on {expires_at_str}. Please renew."}
 
-            days_remaining = max(0, (expires_at - now).days)
+            delta = expires_at - now
+            days_remaining = max(0, delta.days)
+            # If less than 24 hours remaining, show hours or 1 day
+            display_days = days_remaining if days_remaining > 0 else (1 if delta.total_seconds() > 0 else 0)
+
             return {
                 "valid": True,
                 "client_name": client_name,
                 "expires_at": expires_at_str,
-                "days_remaining": days_remaining,
+                "days_remaining": display_days,
                 "license_key": license_key
             }
         except Exception as e:

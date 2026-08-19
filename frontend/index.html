@@ -54,12 +54,6 @@
         <i class="fa-solid fa-shield-halved"></i>
         <span id="license-status-text">Active</span>
       </div>
-      <button id="open-admin-btn" class="admin-btn" title="Owner Admin Portal">
-        <i class="fa-solid fa-key"></i> Admin
-      </button>
-      <button id="lock-app-btn" class="admin-btn" title="Lock Tool / Logout Device">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-      </button>
     </div>
   </header>
 
@@ -206,11 +200,6 @@
         <button type="submit" class="license-submit-btn">
           <i class="fa-solid fa-unlock"></i> Unlock Tool
         </button>
-        <div style="margin-top: 14px; text-align: center;">
-          <button type="button" id="open-admin-from-lock" style="background: none; border: none; color: var(--text-muted); font-size: 11px; cursor: pointer; text-decoration: underline;">
-            <i class="fa-solid fa-key"></i> Owner Admin Portal
-          </button>
-        </div>
       </form>
     </div>
   </div>
@@ -233,7 +222,7 @@
         <form id="admin-login-form" class="license-form">
           <div class="license-input-wrapper">
             <i class="fa-solid fa-lock"></i>
-            <input type="password" id="admin-pass-input" placeholder="Admin Password (Default: admin123)" required>
+            <input type="password" id="admin-pass-input" placeholder="Enter Master Password" required>
           </div>
           <div id="admin-login-error" class="license-error hidden"></div>
           <button type="submit" class="admin-submit-btn">

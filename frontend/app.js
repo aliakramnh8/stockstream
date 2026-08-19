@@ -97,11 +97,21 @@ async function checkLicenseStatus() {
   }
 }
 
+function getOrCreateDeviceId() {
+  let devId = localStorage.getItem('stockstream_device_fingerprint');
+  if (!devId) {
+    devId = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+    localStorage.setItem('stockstream_device_fingerprint', devId);
+  }
+  return devId;
+}
+
 function lockApp(msg = '') {
   state.isLicensed = false;
   licenseModal.classList.remove('hidden');
   licenseBadge.classList.add('expired');
   licenseStatusText.textContent = 'Locked';
+  licenseBadge.title = 'Subscription Locked';
   if (msg && licenseErrorMsg) {
     licenseErrorMsg.textContent = msg;
     licenseErrorMsg.classList.remove('hidden');
@@ -117,10 +127,11 @@ function unlockApp() {
 async function verifyLicenseKey(key, showErrors = true) {
   if (!key) return false;
   try {
+    const deviceId = getOrCreateDeviceId();
     const res = await fetch('/api/license/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ license_key: key })
+      body: JSON.stringify({ license_key: key, device_id: deviceId })
     });
     const data = await res.json();
 
@@ -128,8 +139,20 @@ async function verifyLicenseKey(key, showErrors = true) {
       state.isLicensed = true;
       localStorage.setItem(SESSION_STORAGE_KEY, data.license_key);
       licenseBadge.classList.remove('expired');
-      const daysText = data.days_remaining > 365 ? 'Lifetime Access' : `${data.days_remaining} Days Left`;
+
+      let daysText = '';
+      if (data.days_remaining > 365) {
+        daysText = 'Lifetime Active';
+      } else if (data.days_remaining > 1) {
+        daysText = `${data.days_remaining} Days Remaining`;
+      } else if (data.days_remaining === 1) {
+        daysText = '1 Day Left (Expires Soon)';
+      } else {
+        daysText = 'Expires Today';
+      }
+
       licenseStatusText.textContent = daysText;
+      licenseBadge.title = `Licensed to: ${data.client_name || 'Subscriber'} | Valid until: ${data.expires_at || ''}`;
       return true;
     } else {
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -138,7 +161,8 @@ async function verifyLicenseKey(key, showErrors = true) {
         licenseErrorMsg.classList.remove('hidden');
       }
       licenseBadge.classList.add('expired');
-      licenseStatusText.textContent = 'Expired';
+      licenseStatusText.textContent = 'Locked';
+      licenseBadge.title = 'Access Locked';
       return false;
     }
   } catch (err) {
@@ -260,10 +284,33 @@ function setupAdminListeners() {
     }
   };
 
-  openAdminBtn.addEventListener('click', handleOpenAdmin);
-  const openAdminFromLock = document.getElementById('open-admin-from-lock');
-  if (openAdminFromLock) {
-    openAdminFromLock.addEventListener('click', handleOpenAdmin);
+  // Secret 1: Check if URL has #admin
+  if (window.location.hash === '#admin') {
+    handleOpenAdmin();
+  }
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#admin') handleOpenAdmin();
+  });
+
+  // Secret 2: Keyboard Shortcut Ctrl + Shift + A
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      e.preventDefault();
+      handleOpenAdmin();
+    }
+  });
+
+  // Secret 3: Double click on Brand Logo
+  const brandLogo = document.querySelector('.brand-logo');
+  if (brandLogo) {
+    brandLogo.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      handleOpenAdmin();
+    });
+  }
+
+  if (openAdminBtn) {
+    openAdminBtn.addEventListener('click', handleOpenAdmin);
   }
 
   closeAdminBtn.addEventListener('click', closeAdminModal);
@@ -287,7 +334,7 @@ function setupAdminListeners() {
         adminDashboardView.classList.remove('hidden');
         loadAdminLicenses();
       } else {
-        adminLoginError.textContent = 'Incorrect admin password (default: admin123)';
+        adminLoginError.textContent = 'Incorrect password. Access denied.';
         adminLoginError.classList.remove('hidden');
       }
     } catch (err) {
