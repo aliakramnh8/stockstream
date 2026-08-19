@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- LICENSE VERIFICATION ---
 async function checkLicenseStatus() {
-  const savedKey = localStorage.getItem('stockstream_license') || 'SS-MASTER-2026';
+  const savedKey = localStorage.getItem('stockstream_license');
   const isValid = await verifyLicenseKey(savedKey, false);
 
   if (isValid) {
