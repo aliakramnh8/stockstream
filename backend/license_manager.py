@@ -25,17 +25,9 @@ def init_db():
             device_id TEXT DEFAULT ''
         )
     """)
+    # Delete any master keys so no one gets free master access
+    cursor.execute("DELETE FROM licenses WHERE license_key = 'SS-MASTER-2026'")
     conn.commit()
-
-    # Generate a default master lifetime key if none exists
-    cursor.execute("SELECT COUNT(*) FROM licenses")
-    if cursor.fetchone()[0] == 0:
-        default_exp = datetime.now() + timedelta(days=3650)
-        cursor.execute("""
-            INSERT INTO licenses (license_key, client_name, duration_days, expires_at, status)
-            VALUES (?, ?, ?, ?, ?)
-        """, ("SS-MASTER-2026", "Master Lifetime Key", 3650, default_exp.strftime("%Y-%m-%d %H:%M:%S"), "active"))
-        conn.commit()
     conn.close()
 
 def generate_key(prefix="SS") -> str:
@@ -77,6 +69,9 @@ class LicenseManager:
 
     def verify_license(self, key: str, device_id: str = "") -> Dict[str, Any]:
         clean_key = key.strip().upper()
+        if not clean_key:
+            return {"valid": False, "message": "Please enter a license key."}
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
@@ -87,12 +82,12 @@ class LicenseManager:
         conn.close()
 
         if not row:
-            return {"valid": False, "message": "Invalid License Key. Please enter a valid key."}
+            return {"valid": False, "message": "Invalid License Key. Please enter a valid purchased key."}
 
         license_key, client_name, duration_days, expires_at_str, status, saved_device_id = row
 
         if status != 'active':
-            return {"valid": False, "message": "This license key has been deactivated."}
+            return {"valid": False, "message": "This license key has been revoked/deactivated."}
 
         try:
             expires_at = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S")

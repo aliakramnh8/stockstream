@@ -75,16 +75,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- LICENSE VERIFICATION ---
-async function checkLicenseStatus() {
-  const savedKey = localStorage.getItem('stockstream_license');
-  const isValid = await verifyLicenseKey(savedKey, false);
+// Purge old cached tokens from all computers
+localStorage.removeItem('stockstream_license');
+localStorage.removeItem('stockstream_client_session_v2');
 
+const SESSION_STORAGE_KEY = 'stockstream_v3_session';
+
+async function checkLicenseStatus() {
+  const savedKey = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!savedKey) {
+    lockApp('Please enter your license key to unlock StockStream.');
+    return;
+  }
+
+  const isValid = await verifyLicenseKey(savedKey, false);
   if (isValid) {
-    licenseModal.classList.add('hidden');
+    unlockApp();
     triggerSearch('earth');
   } else {
-    licenseModal.classList.remove('hidden');
+    lockApp('Your session has expired. Please enter a valid license key.');
   }
+}
+
+function lockApp(msg = '') {
+  state.isLicensed = false;
+  licenseModal.classList.remove('hidden');
+  licenseBadge.classList.add('expired');
+  licenseStatusText.textContent = 'Locked';
+  if (msg && licenseErrorMsg) {
+    licenseErrorMsg.textContent = msg;
+    licenseErrorMsg.classList.remove('hidden');
+  }
+}
+
+function unlockApp() {
+  state.isLicensed = true;
+  licenseModal.classList.add('hidden');
+  if (licenseErrorMsg) licenseErrorMsg.classList.add('hidden');
 }
 
 async function verifyLicenseKey(key, showErrors = true) {
@@ -99,12 +126,13 @@ async function verifyLicenseKey(key, showErrors = true) {
 
     if (data.valid) {
       state.isLicensed = true;
-      localStorage.setItem('stockstream_license', data.license_key);
+      localStorage.setItem(SESSION_STORAGE_KEY, data.license_key);
       licenseBadge.classList.remove('expired');
-      const daysText = data.days_remaining > 365 ? 'Master Access' : `${data.days_remaining} Days Left`;
+      const daysText = data.days_remaining > 365 ? 'Lifetime Access' : `${data.days_remaining} Days Left`;
       licenseStatusText.textContent = daysText;
       return true;
     } else {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
       if (showErrors && licenseErrorMsg) {
         licenseErrorMsg.textContent = data.message || 'Invalid License Key';
         licenseErrorMsg.classList.remove('hidden');
@@ -120,6 +148,15 @@ async function verifyLicenseKey(key, showErrors = true) {
 }
 
 function setupEventListeners() {
+  // Lock Tool / Logout Device Button
+  const lockAppBtn = document.getElementById('lock-app-btn');
+  if (lockAppBtn) {
+    lockAppBtn.addEventListener('click', () => {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      lockApp('Device logged out. Please enter your license key.');
+    });
+  }
+
   // License Activation Form
   licenseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -211,7 +248,7 @@ function setupEventListeners() {
 
 // --- ADMIN PORTAL LOGIC ---
 function setupAdminListeners() {
-  openAdminBtn.addEventListener('click', () => {
+  const handleOpenAdmin = () => {
     adminModal.classList.remove('hidden');
     if (!state.adminPassword) {
       adminLoginView.classList.remove('hidden');
@@ -221,7 +258,13 @@ function setupAdminListeners() {
       adminDashboardView.classList.remove('hidden');
       loadAdminLicenses();
     }
-  });
+  };
+
+  openAdminBtn.addEventListener('click', handleOpenAdmin);
+  const openAdminFromLock = document.getElementById('open-admin-from-lock');
+  if (openAdminFromLock) {
+    openAdminFromLock.addEventListener('click', handleOpenAdmin);
+  }
 
   closeAdminBtn.addEventListener('click', closeAdminModal);
 
