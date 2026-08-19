@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockStream - 4K & HD Stock Video Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="brand-text">
+          <h1>Stock<span>Stream</span></h1>
+          <p class="tagline">Search & Download 4K / HD Stock Videos</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <form id="search-form" class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Search stock videos (e.g. earth, nature, drone, business, tech)..." 
+          autocomplete="off" 
+          required
+        >
+        <button type="button" id="clear-search-btn" class="clear-btn" title="Clear">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <button type="submit" class="search-submit-btn">
+          <span>Search</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+
+    <div class="header-right">
+      <div class="stats-badge" id="stats-badge">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="results-count-text">Ready</span>
+      </div>
+      <div class="stats-badge license-status-badge" id="license-badge" title="Subscription Status">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span id="license-status-text">Active</span>
+      </div>
+      <button id="open-admin-btn" class="admin-btn" title="Owner Admin Portal">
+        <i class="fa-solid fa-key"></i> Admin
+      </button>
+      <button id="lock-app-btn" class="admin-btn" title="Lock Tool / Logout Device">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="app-main">
+    <!-- Controls & Filter Toolbar -->
+    <div class="filter-toolbar">
+      <!-- Provider Selector Tabs -->
+      <div class="filter-group">
+        <label class="filter-label"><i class="fa-solid fa-layer-group"></i> Library:</label>
+        <div class="pill-tabs" id="provider-tabs">
+          <button class="pill-tab active" data-provider="all">
+            <i class="fa-solid fa-globe"></i> All Sources
+          </button>
+          <button class="pill-tab" data-provider="flexclip">
+            <i class="fa-solid fa-cube"></i> Storyblocks
+          </button>
+          <button class="pill-tab" data-provider="pexels">
+            <i class="fa-solid fa-camera"></i> Pexels
+          </button>
+          <button class="pill-tab" data-provider="pixabay">
+            <i class="fa-solid fa-image"></i> Pixabay
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Orientation & Sort Filters -->
+      <div class="filter-controls-right">
+        <div class="filter-select-wrapper">
+          <label for="orientation-select"><i class="fa-solid fa-crop-simple"></i> Ratio:</label>
+          <select id="orientation-select" class="custom-select">
+            <option value="">All Ratios</option>
+            <option value="landscape">Landscape (16:9)</option>
+            <option value="portrait">Portrait (9:16)</option>
+            <option value="square">Square (1:1)</option>
+          </select>
+        </div>
+
+        <div class="filter-select-wrapper">
+          <label for="sort-select"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort:</label>
+          <select id="sort-select" class="custom-select">
+            <option value="most_relevant">Most Relevant</option>
+            <option value="trending_now">Trending Now</option>
+            <option value="most_downloaded">Most Downloaded</option>
+            <option value="most_recent">Most Recent</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggested Topics Chips -->
+    <div class="topics-bar">
+      <span class="topics-title"><i class="fa-solid fa-fire"></i> Popular:</span>
+      <div class="topic-chips" id="topic-chips">
+        <button class="topic-chip" data-query="earth">🌍 Earth</button>
+        <button class="topic-chip" data-query="nature">🌿 Nature</button>
+        <button class="topic-chip" data-query="cyberpunk">🏙️ Cyberpunk</button>
+        <button class="topic-chip" data-query="abstract background">✨ Background</button>
+        <button class="topic-chip" data-query="technology">💻 Technology</button>
+        <button class="topic-chip" data-query="space galaxy">🌌 Space</button>
+        <button class="topic-chip" data-query="drone 4k">🚁 Drone 4K</button>
+        <button class="topic-chip" data-query="business office">💼 Business</button>
+        <button class="topic-chip" data-query="water waterfall">💧 Waterfall</button>
+        <button class="topic-chip" data-query="clouds sunset">🌅 Sunset</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <section class="results-section">
+      <!-- Loading Skeleton -->
+      <div id="loading-state" class="loading-state hidden">
+        <div class="spinner-ring"></div>
+        <p>Searching stock video library...</p>
+      </div>
+
+      <!-- Empty / Welcome State -->
+      <div id="welcome-state" class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-photo-film"></i></div>
+        <h2>Search Millions of Stock Videos</h2>
+        <p>Type a keyword above or click on popular tags to browse and download 4K & Full HD stock footage directly with 1-click downloads.</p>
+      </div>
+
+      <!-- No Results State -->
+      <div id="no-results-state" class="empty-state hidden">
+        <div class="empty-icon"><i class="fa-solid fa-face-frown-open"></i></div>
+        <h2>No Videos Found</h2>
+        <p>Try searching for a different keyword or switch to "All Sources".</p>
+      </div>
+
+      <!-- Video Grid -->
+      <div id="video-grid" class="video-grid"></div>
+
+      <!-- Load More Button -->
+      <div id="load-more-wrapper" class="load-more-wrapper hidden">
+        <button id="load-more-btn" class="load-more-btn">
+          <i class="fa-solid fa-angles-down"></i> Load More Videos
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Video Details & Download Modal -->
+  <div id="video-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="close-modal-btn" class="close-modal-btn" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <div class="modal-video-container">
+        <video id="modal-video-player" controls controlsList="nodownload" oncontextmenu="return false;" disablePictureInPicture autoplay loop playsinline></video>
+      </div>
+
+      <div class="modal-info">
+        <div class="modal-header-row">
+          <div>
+            <h3 id="modal-title">Video Title</h3>
+            <div class="modal-badges" id="modal-badges"></div>
+          </div>
+        </div>
+
+        <div class="modal-download-section">
+          <h4><i class="fa-solid fa-download"></i> Available Download Formats:</h4>
+          <div id="modal-download-options" class="download-options-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client License Activation Modal -->
+  <div id="license-modal" class="modal-overlay hidden">
+    <div class="modal-card license-card">
+      <div class="license-modal-header">
+        <div class="license-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <h2>Welcome to <span>StockStream</span></h2>
+        <p>Please enter your Access License Key to unlock unlimited searches and 1-click 1080p downloads.</p>
+      </div>
+
+      <form id="license-form" class="license-form">
+        <div class="license-input-wrapper">
+          <i class="fa-solid fa-key"></i>
+          <input type="text" id="license-key-input" placeholder="e.g. SS-XXXX-XXXX-XXXX" autocomplete="off" required>
+        </div>
+        <div id="license-error-msg" class="license-error hidden"></div>
+        <button type="submit" class="license-submit-btn">
+          <i class="fa-solid fa-unlock"></i> Unlock Tool
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Owner Admin Modal -->
+  <div id="admin-modal" class="modal-overlay hidden">
+    <div class="modal-card admin-card">
+      <button id="close-admin-btn" class="close-modal-btn" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Admin Login View -->
+      <div id="admin-login-view" class="admin-view">
+        <div class="admin-modal-header">
+          <div class="admin-icon"><i class="fa-solid fa-user-shield"></i></div>
+          <h2>Admin <span>Key Manager</span></h2>
+          <p>Enter your master password to generate & manage client subscription keys.</p>
+        </div>
+
+        <form id="admin-login-form" class="license-form">
+          <div class="license-input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="admin-pass-input" placeholder="Admin Password (Default: admin123)" required>
+          </div>
+          <div id="admin-login-error" class="license-error hidden"></div>
+          <button type="submit" class="admin-submit-btn">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Admin
+          </button>
+        </form>
+      </div>
+
+      <!-- Admin Dashboard View -->
+      <div id="admin-dashboard-view" class="admin-view hidden">
+        <div class="admin-dash-header">
+          <h3><i class="fa-solid fa-key"></i> Generate Subscription License Key</h3>
+          <button id="admin-logout-btn" class="admin-logout-btn" title="Logout"><i class="fa-solid fa-power-off"></i> Logout</button>
+        </div>
+
+        <!-- Create Key Form -->
+        <form id="create-key-form" class="create-key-form">
+          <div class="create-key-inputs">
+            <input type="text" id="client-name-input" placeholder="Client Name (e.g. Ali)" required>
+            <select id="key-days-select" class="custom-select">
+              <option value="7">7 Days Trial</option>
+              <option value="30" selected>30 Days (Monthly)</option>
+              <option value="90">90 Days (3 Months)</option>
+              <option value="365">365 Days (1 Year)</option>
+              <option value="3650">Lifetime (10 Years)</option>
+            </select>
+            <button type="submit" class="generate-btn">
+              <i class="fa-solid fa-plus"></i> Generate Key
+            </button>
+          </div>
+        </form>
+
+        <!-- Newly Generated Key Alert Box -->
+        <div id="new-key-box" class="new-key-box hidden">
+          <div class="new-key-details">
+            <span class="new-key-label">Generated Key (Click to Copy):</span>
+            <code id="new-key-code" title="Click to copy">SS-XXXX-XXXX</code>
+          </div>
+          <button id="copy-key-btn" class="copy-btn"><i class="fa-solid fa-copy"></i> Copy Key</button>
+        </div>
+
+        <!-- All Keys Table -->
+        <div class="licenses-table-wrapper">
+          <h4>Active & Past Client Licenses:</h4>
+          <div class="table-scroll">
+            <table class="licenses-table">
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>License Key</th>
+                  <th>Duration</th>
+                  <th>Expires</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="licenses-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toast-message">Download started!</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
