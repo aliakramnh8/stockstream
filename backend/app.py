@@ -221,9 +221,20 @@ async def proxy_download(
     return StreamingResponse(stream_video(), headers=headers)
 
 # Mount frontend static files
-frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
-if os.path.exists(frontend_path):
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+possible_frontend_paths = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "frontend")),
+    os.path.abspath(os.path.join(os.getcwd(), "frontend")),
+    os.path.abspath(os.getcwd())
+]
+found_path = None
+for p in possible_frontend_paths:
+    if os.path.exists(os.path.join(p, "index.html")):
+        found_path = p
+        break
+
+if found_path:
+    app.mount("/", StaticFiles(directory=found_path, html=True), name="frontend")
 
 if __name__ == "__main__":
     uvicorn.run("backend.app:app", host="127.0.0.1", port=8000, reload=True)
