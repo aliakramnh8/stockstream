@@ -471,6 +471,16 @@ body {
   border-color: rgba(46, 196, 182, 0.4);
 }
 
+.badge-provider.mixkit {
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.badge-provider.coverr {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
 .card-duration {
   position: absolute;
   bottom: 8px;

@@ -16,6 +16,8 @@ import uvicorn
 from backend.flexclip_client import FlexClipClient
 from backend.pexels_client import PexelsClient
 from backend.pixabay_client import PixabayClient
+from backend.mixkit_client import MixkitClient
+from backend.coverr_client import CoverrClient
 from backend.license_manager import LicenseManager
 
 app = FastAPI(title="StockStream", version="1.0.0")
@@ -31,6 +33,8 @@ app.add_middleware(
 flexclip_client = FlexClipClient()
 pexels_client = PexelsClient()
 pixabay_client = PixabayClient()
+mixkit_client = MixkitClient()
+coverr_client = CoverrClient()
 license_mgr = LicenseManager()
 
 executor = ThreadPoolExecutor(max_workers=10)
@@ -135,21 +139,37 @@ async def search_stock_videos(
         )
         return res
 
+    elif provider == "mixkit":
+        res = await loop.run_in_executor(
+            executor, mixkit_client.search_videos, clean_keywords, page, num_results, orientation
+        )
+        return res
+
+    elif provider == "coverr":
+        res = await loop.run_in_executor(
+            executor, coverr_client.search_videos, clean_keywords, page, num_results, orientation
+        )
+        return res
+
     else:
-        # provider == "all": search Storyblocks, Pexels, and Pixabay concurrently
-        sub_results_count = max(8, num_results // 3)
+        # provider == "all": search Storyblocks, Pexels, Pixabay, Mixkit, and Coverr concurrently
+        sub_results_count = max(5, num_results // 5)
         tasks = [
             loop.run_in_executor(executor, flexclip_client.search_videos, clean_keywords, page, sub_results_count, sort),
             loop.run_in_executor(executor, pexels_client.search_videos, clean_keywords, page, sub_results_count, orientation),
             loop.run_in_executor(executor, pixabay_client.search_videos, clean_keywords, page, sub_results_count, orientation),
+            loop.run_in_executor(executor, mixkit_client.search_videos, clean_keywords, page, sub_results_count, orientation),
+            loop.run_in_executor(executor, coverr_client.search_videos, clean_keywords, page, sub_results_count, orientation),
         ]
         completed = await asyncio.gather(*tasks, return_exceptions=True)
 
         fc_list = completed[0].get("results", []) if isinstance(completed[0], dict) and completed[0].get("success") else []
         pex_list = completed[1].get("results", []) if isinstance(completed[1], dict) and completed[1].get("success") else []
         pix_list = completed[2].get("results", []) if isinstance(completed[2], dict) and completed[2].get("success") else []
+        mix_list = completed[3].get("results", []) if isinstance(completed[3], dict) and completed[3].get("success") else []
+        cov_list = completed[4].get("results", []) if isinstance(completed[4], dict) and completed[4].get("success") else []
 
-        max_len = max(len(fc_list), len(pex_list), len(pix_list))
+        max_len = max(len(fc_list), len(pex_list), len(pix_list), len(mix_list), len(cov_list))
         combined = []
         for i in range(max_len):
             if i < len(fc_list):
@@ -158,11 +178,17 @@ async def search_stock_videos(
                 combined.append(pex_list[i])
             if i < len(pix_list):
                 combined.append(pix_list[i])
+            if i < len(mix_list):
+                combined.append(mix_list[i])
+            if i < len(cov_list):
+                combined.append(cov_list[i])
 
         total_est = sum([
             completed[0].get("total", 0) if isinstance(completed[0], dict) else 0,
             completed[1].get("total", 0) if isinstance(completed[1], dict) else 0,
             completed[2].get("total", 0) if isinstance(completed[2], dict) else 0,
+            completed[3].get("total", 0) if isinstance(completed[3], dict) else 0,
+            completed[4].get("total", 0) if isinstance(completed[4], dict) else 0,
         ])
 
         return {
@@ -173,7 +199,9 @@ async def search_stock_videos(
             "counts": {
                 "storyblocks": len(fc_list),
                 "pexels": len(pex_list),
-                "pixabay": len(pix_list)
+                "pixabay": len(pix_list),
+                "mixkit": len(mix_list),
+                "coverr": len(cov_list)
             }
         }
 
@@ -193,6 +221,14 @@ async def get_video_details(
     elif provider == "pixabay":
         raw_id = id.replace("pixabay_", "")
         res = await loop.run_in_executor(executor, pixabay_client.get_download_urls, raw_id)
+        return res
+    elif provider == "mixkit":
+        raw_id = id.replace("mixkit_", "")
+        res = await loop.run_in_executor(executor, mixkit_client.get_download_urls, raw_id)
+        return res
+    elif provider == "coverr":
+        raw_id = id.replace("coverr_", "")
+        res = await loop.run_in_executor(executor, coverr_client.get_download_urls, raw_id)
         return res
     else:
         raise HTTPException(status_code=400, detail="Invalid provider")
