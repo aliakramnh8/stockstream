@@ -52,11 +52,18 @@ class PixabayClient:
                         videos_map.get('medium', {}).get('url') or
                         ''
                     )
-                    # thumbnail
-                    thumb = h.get('userImageURL')
-                    if not thumb:
-                        picture_id = h.get('picture_id')
-                        thumb = f"https://i.vimeocdn.com/video/{picture_id}_295x166.jpg" if picture_id else ''
+                    # Extract real video thumbnail from videos map
+                    thumb = (
+                        videos_map.get('medium', {}).get('thumbnail') or
+                        videos_map.get('large', {}).get('thumbnail') or
+                        videos_map.get('small', {}).get('thumbnail') or
+                        videos_map.get('tiny', {}).get('thumbnail') or
+                        ''
+                    )
+
+                    # Clean professional title from tags
+                    raw_tags = [t.strip().title() for t in h.get('tags', '').split(',') if t.strip()]
+                    title = ', '.join(raw_tags[:3]) if raw_tags else f"Stock Video #{h.get('id')}"
 
                     has_4k = False
                     has_hd = 'large' in videos_map or 'medium' in videos_map
@@ -89,7 +96,7 @@ class PixabayClient:
                     results.append({
                         'id': f"pixabay_{h.get('id')}",
                         'raw_id': str(h.get('id')),
-                        'title': f"Pixabay Video #{h.get('id')} ({h.get('tags', 'video')})",
+                        'title': title,
                         'thumbnail': thumb,
                         'preview_video': preview_video,
                         'duration': h.get('duration', 0),
