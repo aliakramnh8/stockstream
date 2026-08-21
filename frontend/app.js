@@ -404,90 +404,117 @@ function setupAdminListeners() {
     });
   });
 
-  // Create Web License Handler
-  window.handleCreateLicense = async function(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    const nameInput = document.getElementById('client-name-input');
-    const daysSelect = document.getElementById('key-days-select');
-    const name = (nameInput && nameInput.value.trim()) || 'Client';
-    const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
+// Global Admin Action Handlers
+window.handleCreateLicense = async function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const nameInput = document.getElementById('client-name-input');
+  const daysSelect = document.getElementById('key-days-select');
+  const name = (nameInput && nameInput.value.trim()) || 'Client';
+  const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
 
-    const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
-    if (!currentPass) {
-      showToast('Please re-login to Admin');
-      adminLoginView.classList.remove('hidden');
-      adminDashboardView.classList.add('hidden');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/admin/create-license', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: currentPass, client_name: name, days: days })
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (newKeyCode) newKeyCode.textContent = data.license_key;
-        if (newKeyBox) newKeyBox.classList.remove('hidden');
-        if (nameInput) nameInput.value = '';
-        showToast(`Key generated for ${name} (${days} Days)`);
-        loadAdminLicenses();
-      } else {
-        showToast(data.detail || 'Error generating key');
-      }
-    } catch (err) {
-      showToast('Error generating license key');
-    }
-  };
-
-  if (createKeyForm) {
-    createKeyForm.addEventListener('submit', window.handleCreateLicense);
+  let currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+  if (!currentPass) {
+    currentPass = prompt('Please enter Master Admin Password to generate key:') || '';
+    if (!currentPass) return;
+    state.adminPassword = currentPass;
+    sessionStorage.setItem(ADMIN_SESSION_KEY, currentPass);
   }
 
-  // Create Storyblocks Developer API Key Handler
-  window.handleCreateApiKey = async function(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    const nameInput = document.getElementById('api-client-name');
-    const daysSelect = document.getElementById('api-days-select');
-    const limitSelect = document.getElementById('api-limit-select');
-
-    const name = (nameInput && nameInput.value.trim()) || 'Developer';
-    const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
-    const limit = parseInt(limitSelect ? limitSelect.value : '100', 10);
-
-    const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
-    if (!currentPass) {
-      showToast('Please re-login to Admin');
-      adminLoginView.classList.remove('hidden');
-      adminDashboardView.classList.add('hidden');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/admin/create-api-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: currentPass, client_name: name, days: days, daily_limit: limit })
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (newApiKeyCode) newApiKeyCode.textContent = data.api_key;
-        if (newApiKeyBox) newApiKeyBox.classList.remove('hidden');
-        if (nameInput) nameInput.value = '';
-        showToast(`Storyblocks API Key created for ${name} (${limit > 0 ? limit + ' req/day' : 'Unlimited'})`);
-        loadAdminApiKeys();
-      } else {
-        showToast(data.detail || 'Error generating API key');
-      }
-    } catch (err) {
-      showToast('Error generating API key');
-    }
-  };
-
-  if (createApiKeyForm) {
-    createApiKeyForm.addEventListener('submit', window.handleCreateApiKey);
+  const btn = e && e.target ? (e.target.closest('button') || e.target) : null;
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
   }
+
+  try {
+    const res = await fetch('/api/admin/create-license', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: currentPass, client_name: name, days: days })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      const codeEl = document.getElementById('new-key-code');
+      const boxEl = document.getElementById('new-key-box');
+      if (codeEl) codeEl.textContent = data.license_key;
+      if (boxEl) {
+        boxEl.classList.remove('hidden');
+        boxEl.style.display = 'flex';
+      }
+      if (nameInput) nameInput.value = '';
+      showToast(`Key generated: ${data.license_key}`);
+      if (window.loadAdminLicenses) window.loadAdminLicenses();
+    } else {
+      alert(data.detail || data.message || 'Incorrect Admin Password or server error.');
+    }
+  } catch (err) {
+    console.error('Error generating license key:', err);
+    alert('Network error generating license key. Please check your connection.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+};
+
+window.handleCreateApiKey = async function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const nameInput = document.getElementById('api-client-name');
+  const daysSelect = document.getElementById('api-days-select');
+  const limitSelect = document.getElementById('api-limit-select');
+
+  const name = (nameInput && nameInput.value.trim()) || 'Developer';
+  const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
+  const limit = parseInt(limitSelect ? limitSelect.value : '100', 10);
+
+  let currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+  if (!currentPass) {
+    currentPass = prompt('Please enter Master Admin Password to generate API key:') || '';
+    if (!currentPass) return;
+    state.adminPassword = currentPass;
+    sessionStorage.setItem(ADMIN_SESSION_KEY, currentPass);
+  }
+
+  const btn = e && e.target ? (e.target.closest('button') || e.target) : null;
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+  }
+
+  try {
+    const res = await fetch('/api/admin/create-api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: currentPass, client_name: name, days: days, daily_limit: limit })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      const codeEl = document.getElementById('new-api-key-code');
+      const boxEl = document.getElementById('new-api-key-box');
+      if (codeEl) codeEl.textContent = data.api_key;
+      if (boxEl) {
+        boxEl.classList.remove('hidden');
+        boxEl.style.display = 'flex';
+      }
+      if (nameInput) nameInput.value = '';
+      showToast(`Storyblocks API Key: ${data.api_key}`);
+      if (window.loadAdminApiKeys) window.loadAdminApiKeys();
+    } else {
+      alert(data.detail || data.message || 'Incorrect Admin Password or server error.');
+    }
+  } catch (err) {
+    console.error('Error generating API key:', err);
+    alert('Network error generating API key. Please check your connection.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+};
 
   // Copy Web License Key Button
   copyKeyBtn.addEventListener('click', () => {
