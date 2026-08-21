@@ -362,21 +362,39 @@ function setupAdminListeners() {
   });
 
   // Admin Subtabs Switching
+  window.switchAdminTab = function(targetId, clickedBtn) {
+    document.querySelectorAll('.admin-subtab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-content').forEach(c => {
+      c.classList.add('hidden');
+      c.style.display = 'none';
+    });
+
+    if (clickedBtn) {
+      clickedBtn.classList.add('active');
+    } else {
+      const activeBtn = document.querySelector(`.admin-subtab[data-tab="${targetId}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    const targetContent = document.getElementById(targetId);
+    if (targetContent) {
+      targetContent.classList.remove('hidden');
+      targetContent.style.display = 'block';
+    }
+
+    if (targetId === 'tab-licenses') {
+      loadAdminLicenses();
+    } else if (targetId === 'tab-apikeys') {
+      loadAdminApiKeys();
+    }
+  };
+
   const subtabBtns = document.querySelectorAll('.admin-subtab');
   subtabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      subtabBtns.forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
-      btn.classList.add('active');
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const targetId = btn.getAttribute('data-tab');
-      const targetContent = document.getElementById(targetId);
-      if (targetContent) targetContent.classList.remove('hidden');
-
-      if (targetId === 'tab-licenses') {
-        loadAdminLicenses();
-      } else if (targetId === 'tab-apikeys') {
-        loadAdminApiKeys();
-      }
+      window.switchAdminTab(targetId, btn);
     });
   });
 

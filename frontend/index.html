@@ -241,9 +241,9 @@
       <div id="admin-dashboard-view" class="admin-view hidden">
         <!-- Admin Tabs Header -->
         <div class="admin-subtabs">
-          <button class="admin-subtab active" data-tab="tab-licenses"><i class="fa-solid fa-desktop"></i> Web App Licenses</button>
-          <button class="admin-subtab" data-tab="tab-apikeys"><i class="fa-solid fa-code"></i> Storyblocks API Keys</button>
-          <button class="admin-subtab" data-tab="tab-apidocs"><i class="fa-solid fa-book-open"></i> API Documentation</button>
+          <button type="button" class="admin-subtab active" data-tab="tab-licenses" onclick="switchAdminTab('tab-licenses', this)"><i class="fa-solid fa-desktop"></i> Web App Licenses</button>
+          <button type="button" class="admin-subtab" data-tab="tab-apikeys" onclick="switchAdminTab('tab-apikeys', this)"><i class="fa-solid fa-code"></i> Storyblocks API Keys</button>
+          <button type="button" class="admin-subtab" data-tab="tab-apidocs" onclick="switchAdminTab('tab-apidocs', this)"><i class="fa-solid fa-book-open"></i> API Documentation</button>
         </div>
 
         <!-- TAB 1: WEB APP LICENSES -->
