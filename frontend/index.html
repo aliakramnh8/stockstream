@@ -417,7 +417,102 @@
         window.loadAdminLicenses();
       }
     }
+
+    async function handleCreateLicense(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var nameInput = document.getElementById('client-name-input');
+      var daysSelect = document.getElementById('key-days-select');
+      var name = (nameInput && nameInput.value.trim()) || 'Client';
+      var days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
+      
+      var btn = document.querySelector('#create-key-form .generate-btn');
+      var originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+      }
+
+      try {
+        var res = await fetch('/api/admin/create-license', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: 'alinh7', client_name: name, days: days })
+        });
+        var data = await res.json();
+        if (data.success) {
+          var codeEl = document.getElementById('new-key-code');
+          var boxEl = document.getElementById('new-key-box');
+          if (codeEl) codeEl.textContent = data.license_key;
+          if (boxEl) {
+            boxEl.classList.remove('hidden');
+            boxEl.style.display = 'flex';
+          }
+          if (nameInput) nameInput.value = '';
+          if (window.showToast) window.showToast('Key generated: ' + data.license_key);
+          if (window.loadAdminLicenses) window.loadAdminLicenses();
+        } else {
+          alert(data.detail || data.message || 'Error creating license key.');
+        }
+      } catch (err) {
+        console.error('Error generating license key:', err);
+        alert('Network error generating license key.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
+    }
+
+    async function handleCreateApiKey(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var nameInput = document.getElementById('api-client-name');
+      var daysSelect = document.getElementById('api-days-select');
+      var limitSelect = document.getElementById('api-limit-select');
+
+      var name = (nameInput && nameInput.value.trim()) || 'Developer';
+      var days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
+      var limit = parseInt(limitSelect ? limitSelect.value : '100', 10);
+
+      var btn = document.querySelector('#create-api-key-form .generate-btn');
+      var originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+      }
+
+      try {
+        var res = await fetch('/api/admin/create-api-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: 'alinh7', client_name: name, days: days, daily_limit: limit })
+        });
+        var data = await res.json();
+        if (data.success) {
+          var codeEl = document.getElementById('new-api-key-code');
+          var boxEl = document.getElementById('new-api-key-box');
+          if (codeEl) codeEl.textContent = data.api_key;
+          if (boxEl) {
+            boxEl.classList.remove('hidden');
+            boxEl.style.display = 'flex';
+          }
+          if (nameInput) nameInput.value = '';
+          if (window.showToast) window.showToast('Storyblocks API Key: ' + data.api_key);
+          if (window.loadAdminApiKeys) window.loadAdminApiKeys();
+        } else {
+          alert(data.detail || data.message || 'Error creating Storyblocks API key.');
+        }
+      } catch (err) {
+        console.error('Error generating API key:', err);
+        alert('Network error generating API key.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
+    }
   </script>
-  <script src="app.js?v=6.0"></script>
+  <script src="app.js?v=7.0"></script>
 </body>
 </html>
