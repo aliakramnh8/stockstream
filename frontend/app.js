@@ -77,11 +77,12 @@ const apiKeysTableBody = document.getElementById('api-keys-table-body');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Enforce License Lock First
+  await checkLicenseStatus();
+
+  // 2. Setup listeners
   setupEventListeners();
   setupAdminListeners();
-
-  // Check License on start
-  await checkLicenseStatus();
 });
 
 // --- LICENSE VERIFICATION ---
@@ -404,6 +405,23 @@ function setupAdminListeners() {
     });
   });
 
+  // Copy Web License Key Button
+  if (copyKeyBtn) {
+    copyKeyBtn.addEventListener('click', () => {
+      if (newKeyCode) navigator.clipboard.writeText(newKeyCode.textContent);
+      showToast('Web License Key copied to clipboard!');
+    });
+  }
+
+  // Copy API Key Button
+  if (copyApiKeyBtn) {
+    copyApiKeyBtn.addEventListener('click', () => {
+      if (newApiKeyCode) navigator.clipboard.writeText(newApiKeyCode.textContent);
+      showToast('Storyblocks API Key copied to clipboard!');
+    });
+  }
+}
+
 // Global Admin Action Handlers
 window.handleCreateLicense = async function(e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -503,21 +521,6 @@ window.handleCreateApiKey = async function(e) {
     }
   }
 };
-
-  // Copy Web License Key Button
-  copyKeyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(newKeyCode.textContent);
-    showToast('Web License Key copied to clipboard!');
-  });
-
-  // Copy API Key Button
-  if (copyApiKeyBtn) {
-    copyApiKeyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(newApiKeyCode.textContent);
-      showToast('Storyblocks API Key copied to clipboard!');
-    });
-  }
-}
 
 function closeAdminModal() {
   adminModal.classList.add('hidden');

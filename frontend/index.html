@@ -188,8 +188,8 @@
     </div>
   </div>
 
-  <!-- Client License Activation Modal -->
-  <div id="license-modal" class="modal-overlay hidden">
+  <!-- Client License Activation Modal (Locked by default for new visitors) -->
+  <div id="license-modal" class="modal-overlay">
     <div class="modal-card license-card">
       <div class="license-modal-header">
         <div class="license-icon"><i class="fa-solid fa-shield-halved"></i></div>
@@ -197,13 +197,13 @@
         <p>Please enter your Access License Key to unlock unlimited searches and 1-click 1080p downloads.</p>
       </div>
 
-      <form id="license-form" class="license-form" onsubmit="event.preventDefault(); return false;">
+      <form id="license-form" class="license-form" onsubmit="event.preventDefault(); handleActivateLicense(event); return false;">
         <div class="license-input-wrapper">
           <i class="fa-solid fa-key"></i>
           <input type="text" id="license-key-input" placeholder="e.g. SS-XXXX-XXXX-XXXX" autocomplete="off" required>
         </div>
         <div id="license-error-msg" class="license-error hidden"></div>
-        <button type="submit" class="license-submit-btn">
+        <button type="submit" class="license-submit-btn" onclick="handleActivateLicense(event)">
           <i class="fa-solid fa-unlock"></i> Unlock Tool
         </button>
       </form>
@@ -512,7 +512,65 @@
         }
       }
     }
+    async function handleActivateLicense(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var input = document.getElementById('license-key-input');
+      var errorEl = document.getElementById('license-error-msg');
+      var key = (input && input.value.trim()) || '';
+      if (!key) return;
+
+      var devId = localStorage.getItem('stockstream_device_fingerprint');
+      if (!devId) {
+        devId = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+        localStorage.setItem('stockstream_device_fingerprint', devId);
+      }
+
+      var btn = document.querySelector('#license-form .license-submit-btn');
+      var originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Activating...';
+      }
+
+      try {
+        var res = await fetch('/api/license/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ license_key: key, device_id: devId })
+        });
+        var data = await res.json();
+        if (data.valid) {
+          localStorage.setItem('stockstream_v3_session', data.license_key);
+          var modal = document.getElementById('license-modal');
+          if (modal) modal.classList.add('hidden');
+          if (errorEl) errorEl.classList.add('hidden');
+          if (window.showToast) window.showToast('License successfully activated!');
+          
+          var badge = document.getElementById('license-badge');
+          var statusText = document.getElementById('license-status-text');
+          if (badge) badge.classList.remove('expired');
+          if (statusText) statusText.textContent = (data.days_remaining || 30) + ' Days Remaining';
+          
+          if (window.triggerSearch) window.triggerSearch('earth');
+        } else {
+          if (errorEl) {
+            errorEl.textContent = data.message || 'Invalid or expired license key.';
+            errorEl.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = 'Server error verifying license.';
+          errorEl.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
+    }
   </script>
-  <script src="app.js?v=7.0"></script>
+  <script src="app.js?v=8.0"></script>
 </body>
 </html>
