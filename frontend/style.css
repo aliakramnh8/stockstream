@@ -1064,12 +1064,100 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
-.admin-dash-header h3 {
-  font-size: 16px;
-  font-weight: 700;
+.admin-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.admin-subtab {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.admin-subtab:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-subtab.active {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.admin-tab-content {
+  display: block;
+}
+
+.admin-tab-content.hidden {
+  display: none !important;
+}
+
+.api-docs-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.doc-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.doc-endpoint {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 6px;
+}
+
+.doc-endpoint code {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.badge-get {
+  background: #10b981;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.doc-block p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.doc-block pre {
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #38bdf8;
 }
 
 .admin-logout-btn {

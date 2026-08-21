@@ -65,6 +65,16 @@ const newKeyCode = document.getElementById('new-key-code');
 const copyKeyBtn = document.getElementById('copy-key-btn');
 const licensesTableBody = document.getElementById('licenses-table-body');
 
+// Storyblocks Developer API Key DOM Elements
+const createApiKeyForm = document.getElementById('create-api-key-form');
+const apiClientName = document.getElementById('api-client-name');
+const apiDaysSelect = document.getElementById('api-days-select');
+const apiLimitSelect = document.getElementById('api-limit-select');
+const newApiKeyBox = document.getElementById('new-api-key-box');
+const newApiKeyCode = document.getElementById('new-api-key-code');
+const copyApiKeyBtn = document.getElementById('copy-api-key-btn');
+const apiKeysTableBody = document.getElementById('api-keys-table-body');
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
@@ -351,7 +361,26 @@ function setupAdminListeners() {
     adminPassInput.value = '';
   });
 
-  // Create Key Form
+  // Admin Subtabs Switching
+  const subtabBtns = document.querySelectorAll('.admin-subtab');
+  subtabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      subtabBtns.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+      btn.classList.add('active');
+      const targetId = btn.getAttribute('data-tab');
+      const targetContent = document.getElementById(targetId);
+      if (targetContent) targetContent.classList.remove('hidden');
+
+      if (targetId === 'tab-licenses') {
+        loadAdminLicenses();
+      } else if (targetId === 'tab-apikeys') {
+        loadAdminApiKeys();
+      }
+    });
+  });
+
+  // Create Web License Form
   createKeyForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = clientNameInput.value.trim() || 'Client';
@@ -376,11 +405,47 @@ function setupAdminListeners() {
     }
   });
 
-  // Copy Key Button
+  // Create Storyblocks Developer API Key Form
+  if (createApiKeyForm) {
+    createApiKeyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = apiClientName.value.trim() || 'Developer';
+      const days = parseInt(apiDaysSelect.value, 10) || 30;
+      const limit = parseInt(apiLimitSelect.value, 10);
+
+      try {
+        const res = await fetch('/api/admin/create-api-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: state.adminPassword, client_name: name, days: days, daily_limit: limit })
+        });
+        const data = await res.json();
+        if (data.success) {
+          newApiKeyCode.textContent = data.api_key;
+          newApiKeyBox.classList.remove('hidden');
+          apiClientName.value = '';
+          showToast(`Storyblocks API Key created for ${name} (${limit > 0 ? limit + ' req/day' : 'Unlimited'})`);
+          loadAdminApiKeys();
+        }
+      } catch (err) {
+        showToast('Error generating API key');
+      }
+    });
+  }
+
+  // Copy Web License Key Button
   copyKeyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(newKeyCode.textContent);
-    showToast('Key copied to clipboard!');
+    showToast('Web License Key copied to clipboard!');
   });
+
+  // Copy API Key Button
+  if (copyApiKeyBtn) {
+    copyApiKeyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(newApiKeyCode.textContent);
+      showToast('Storyblocks API Key copied to clipboard!');
+    });
+  }
 }
 
 function closeAdminModal() {
@@ -427,6 +492,113 @@ function renderLicensesTable(licenses) {
     licensesTableBody.appendChild(tr);
   });
 }
+
+async function loadAdminApiKeys() {
+  if (!state.adminPassword || !apiKeysTableBody) return;
+  try {
+    const res = await fetch(`/api/admin/api-keys?password=${encodeURIComponent(state.adminPassword)}`);
+    const data = await res.json();
+    if (data.success) {
+      renderApiKeysTable(data.api_keys);
+    }
+  } catch (err) {
+    console.error('Error loading API keys:', err);
+  }
+}
+
+function renderApiKeysTable(apiKeys) {
+  if (!apiKeysTableBody) return;
+  apiKeysTableBody.innerHTML = '';
+  if (!apiKeys || apiKeys.length === 0) {
+    apiKeysTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 14px;">No Storyblocks API keys generated yet.</td></tr>';
+    return;
+  }
+
+  apiKeys.forEach(k => {
+    const tr = document.createElement('tr');
+    const statusClass = k.status === 'active' ? 'active' : (k.status === 'expired' ? 'expired' : 'revoked');
+    const limitLabel = k.daily_limit > 0 ? `${k.daily_limit} / day` : 'Unlimited';
+
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(k.client_name)}</strong></td>
+      <td><code title="Click to copy" style="cursor: pointer;" onclick="navigator.clipboard.writeText('${k.api_key}'); showToast('API Key copied!');">${escapeHtml(k.api_key)}</code></td>
+      <td>
+        <span style="color: #38bdf8; font-weight: 700;">${limitLabel}</span>
+        <button class="btn-table-action" style="margin-left: 4px; padding: 1px 4px; font-size: 9px;" onclick="updateApiKeyLimitPrompt('${k.api_key}', ${k.daily_limit})" title="Change Daily Limit"><i class="fa-solid fa-pen"></i></button>
+      </td>
+      <td>${k.requests_today}</td>
+      <td>${k.total_requests}</td>
+      <td>${escapeHtml(k.expires_at.split(' ')[0])}</td>
+      <td><span class="status-pill ${statusClass}">${k.status}</span></td>
+      <td>
+        ${k.status === 'active' ? 
+          `<button class="btn-table-action" onclick="revokeApiKeyAction('${k.api_key}')" title="Revoke API Key"><i class="fa-solid fa-ban"></i> Revoke</button>` : 
+          `<button class="btn-table-action" onclick="deleteApiKeyAction(${k.id})" title="Delete API Key"><i class="fa-solid fa-trash"></i> Delete</button>`
+        }
+      </td>
+    `;
+    apiKeysTableBody.appendChild(tr);
+  });
+}
+
+window.updateApiKeyLimitPrompt = async function(key, currentLimit) {
+  const newLimitStr = prompt(`Enter new Daily Request Limit for key ${key} (0 for Unlimited):`, currentLimit);
+  if (newLimitStr === null) return;
+  const newLimit = parseInt(newLimitStr, 10);
+  if (isNaN(newLimit) || newLimit < 0) {
+    alert('Please enter a valid positive number or 0 for unlimited.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/admin/update-api-key-limit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: state.adminPassword, api_key: key, daily_limit: newLimit })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Daily limit updated to ${newLimit > 0 ? newLimit + ' req/day' : 'Unlimited'}`);
+      loadAdminApiKeys();
+    }
+  } catch (e) {
+    showToast('Error updating limit');
+  }
+};
+
+window.revokeApiKeyAction = async function(key) {
+  if (!confirm(`Are you sure you want to revoke Storyblocks API key ${key}?`)) return;
+  try {
+    const res = await fetch('/api/admin/revoke-api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: state.adminPassword, api_key: key })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('API Key revoked');
+      loadAdminApiKeys();
+    }
+  } catch (e) {
+    showToast('Error revoking API key');
+  }
+};
+
+window.deleteApiKeyAction = async function(id) {
+  try {
+    const res = await fetch('/api/admin/delete-api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: state.adminPassword, api_key_id: id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('API key deleted');
+      loadAdminApiKeys();
+    }
+  } catch (e) {
+    showToast('Error deleting API key');
+  }
+};
 
 window.revokeLicense = async function(key) {
   if (!confirm(`Are you sure you want to revoke key ${key}?`)) return;

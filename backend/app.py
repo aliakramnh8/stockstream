@@ -60,6 +60,25 @@ class DeleteLicenseRequest(BaseModel):
     password: str
     license_id: int
 
+class CreateApiKeyRequest(BaseModel):
+    password: str
+    client_name: Optional[str] = "Developer"
+    days: Optional[int] = 30
+    daily_limit: Optional[int] = 100
+
+class UpdateApiKeyLimitRequest(BaseModel):
+    password: str
+    api_key: str
+    daily_limit: int
+
+class RevokeApiKeyRequest(BaseModel):
+    password: str
+    api_key: str
+
+class DeleteApiKeyRequest(BaseModel):
+    password: str
+    api_key_id: int
+
 # --- LICENSE & ADMIN APIS ---
 
 @app.post("/api/license/verify")
@@ -99,6 +118,163 @@ async def delete_license(req: DeleteLicenseRequest):
         raise HTTPException(status_code=401, detail="Invalid admin password")
     changed = license_mgr.delete_license(req.license_id)
     return {"success": changed}
+
+# --- DEVELOPER API KEY ADMIN APIS ---
+
+@app.get("/api/admin/api-keys")
+async def get_admin_api_keys(password: str = Query(...)):
+    if not license_mgr.check_admin_password(password):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    return {"success": True, "api_keys": license_mgr.list_all_api_keys()}
+
+@app.post("/api/admin/create-api-key")
+async def admin_create_api_key(req: CreateApiKeyRequest):
+    if not license_mgr.check_admin_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    res = license_mgr.create_api_key(client_name=req.client_name, days=req.days, daily_limit=req.daily_limit)
+    return res
+
+@app.post("/api/admin/update-api-key-limit")
+async def admin_update_api_key_limit(req: UpdateApiKeyLimitRequest):
+    if not license_mgr.check_admin_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    changed = license_mgr.update_api_key_limit(req.api_key, req.daily_limit)
+    return {"success": changed}
+
+@app.post("/api/admin/revoke-api-key")
+async def admin_revoke_api_key(req: RevokeApiKeyRequest):
+    if not license_mgr.check_admin_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    changed = license_mgr.revoke_api_key(req.api_key)
+    return {"success": changed}
+
+@app.post("/api/admin/delete-api-key")
+async def admin_delete_api_key(req: DeleteApiKeyRequest):
+    if not license_mgr.check_admin_password(req.password):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    changed = license_mgr.delete_api_key(req.api_key_id)
+    return {"success": changed}
+
+# ===================================================
+# STORYBLOCKS DEVELOPER REST API (STORYBLOCKS ONLY)
+# ===================================================
+
+@app.get("/api/v1/storyblocks/search")
+async def storyblocks_api_search(
+    api_key: str = Query(..., description="Storyblocks API Key (SS-SB-XXXX-XXXX-XXXX)"),
+    q: str = Query(..., description="Search keyword query (e.g. nature, drone, business)"),
+    page: int = Query(1, ge=1, description="Page number (default: 1)"),
+    num_results: int = Query(20, ge=1, le=100, description="Results per page (default: 20)"),
+    sort: str = Query("most_relevant", description="most_relevant | latest")
+):
+    loop = asyncio.get_event_loop()
+    # Authenticate and consume 1 quota unit
+    auth = license_mgr.verify_and_consume_api_key(api_key, consume=True)
+    if not auth.get("valid"):
+        raise HTTPException(status_code=403, detail=auth.get("message"))
+
+    clean_q = q.strip()
+    if not clean_q:
+        return {
+            "success": True,
+            "provider": "Storyblocks",
+            "query": q,
+            "page": page,
+            "total_results": 0,
+            "quota": {
+                "daily_limit": auth.get("daily_limit"),
+                "requests_used_today": auth.get("requests_used_today"),
+                "requests_remaining_today": auth.get("requests_remaining_today")
+            },
+            "results": []
+        }
+
+    # Fetch Storyblocks results via flexclip_client
+    res = await loop.run_in_executor(
+        executor, flexclip_client.search_videos, clean_q, page, num_results, sort
+    )
+
+    if not res.get("success"):
+        return {
+            "success": False,
+            "provider": "Storyblocks",
+            "error": res.get("error", "Failed to fetch Storyblocks footage"),
+            "quota": {
+                "daily_limit": auth.get("daily_limit"),
+                "requests_used_today": auth.get("requests_used_today"),
+                "requests_remaining_today": auth.get("requests_remaining_today")
+            }
+        }
+
+    formatted_results = []
+    for item in res.get("results", []):
+        video_id = item.get("raw_id") or item.get("id")
+        formatted_results.append({
+            "id": video_id,
+            "title": item.get("title"),
+            "thumbnail_url": item.get("thumbnail"),
+            "preview_video_url": item.get("preview_video"),
+            "duration_seconds": item.get("duration", 0),
+            "has_4k": item.get("has_4k", False),
+            "has_hd": item.get("has_hd", True),
+            "resolutions": item.get("resolutions", []),
+            "download_endpoint": f"/api/v1/storyblocks/download?api_key={api_key}&video_id={video_id}"
+        })
+
+    return {
+        "success": True,
+        "provider": "Storyblocks",
+        "query": clean_q,
+        "page": page,
+        "total_results": res.get("total", len(formatted_results)),
+        "quota": {
+            "daily_limit": auth.get("daily_limit"),
+            "requests_used_today": auth.get("requests_used_today"),
+            "requests_remaining_today": auth.get("requests_remaining_today"),
+            "total_requests": auth.get("total_requests"),
+            "expires_at": auth.get("expires_at")
+        },
+        "results": formatted_results
+    }
+
+@app.get("/api/v1/storyblocks/download")
+async def storyblocks_api_download(
+    api_key: str = Query(..., description="Storyblocks API Key"),
+    video_id: str = Query(..., description="Storyblocks Video ID (e.g. 12345 or flexclip_12345)")
+):
+    loop = asyncio.get_event_loop()
+    auth = license_mgr.verify_and_consume_api_key(api_key, consume=False)
+    if not auth.get("valid"):
+        raise HTTPException(status_code=403, detail=auth.get("message"))
+
+    clean_id = str(video_id).replace("flexclip_", "")
+    res = await loop.run_in_executor(executor, flexclip_client.get_download_urls, clean_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=404, detail="Storyblocks video download links not found or expired.")
+
+    return {
+        "success": True,
+        "provider": "Storyblocks",
+        "video_id": clean_id,
+        "downloads": res.get("downloads", [])
+    }
+
+@app.get("/api/v1/storyblocks/usage")
+async def storyblocks_api_usage(
+    api_key: str = Query(..., description="Storyblocks API Key")
+):
+    auth = license_mgr.verify_and_consume_api_key(api_key, consume=False)
+    if not auth.get("valid"):
+        raise HTTPException(status_code=403, detail=auth.get("message"))
+    return {
+        "success": True,
+        "client_name": auth.get("client_name"),
+        "daily_limit": auth.get("daily_limit"),
+        "requests_used_today": auth.get("requests_used_today"),
+        "requests_remaining_today": auth.get("requests_remaining_today"),
+        "total_requests": auth.get("total_requests"),
+        "expires_at": auth.get("expires_at")
+    }
 
 # --- SEARCH & MEDIA APIS ---
 

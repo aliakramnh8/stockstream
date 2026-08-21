@@ -239,54 +239,152 @@
 
       <!-- Admin Dashboard View -->
       <div id="admin-dashboard-view" class="admin-view hidden">
-        <div class="admin-dash-header">
-          <h3><i class="fa-solid fa-key"></i> Generate Subscription License Key</h3>
-          <button id="admin-logout-btn" class="admin-logout-btn" title="Logout"><i class="fa-solid fa-power-off"></i> Logout</button>
+        <!-- Admin Tabs Header -->
+        <div class="admin-subtabs">
+          <button class="admin-subtab active" data-tab="tab-licenses"><i class="fa-solid fa-desktop"></i> Web App Licenses</button>
+          <button class="admin-subtab" data-tab="tab-apikeys"><i class="fa-solid fa-code"></i> Storyblocks API Keys</button>
+          <button class="admin-subtab" data-tab="tab-apidocs"><i class="fa-solid fa-book-open"></i> API Documentation</button>
         </div>
 
-        <!-- Create Key Form -->
-        <form id="create-key-form" class="create-key-form">
-          <div class="create-key-inputs">
-            <input type="text" id="client-name-input" placeholder="Client Name (e.g. Ali)" required>
-            <select id="key-days-select" class="custom-select">
-              <option value="7">7 Days Trial</option>
-              <option value="30" selected>30 Days (Monthly)</option>
-              <option value="90">90 Days (3 Months)</option>
-              <option value="365">365 Days (1 Year)</option>
-              <option value="3650">Lifetime (10 Years)</option>
-            </select>
-            <button type="submit" class="generate-btn">
-              <i class="fa-solid fa-plus"></i> Generate Key
-            </button>
+        <!-- TAB 1: WEB APP LICENSES -->
+        <div id="tab-licenses" class="admin-tab-content active">
+          <div class="admin-dash-header">
+            <h3><i class="fa-solid fa-key"></i> Generate Website Subscription Key</h3>
           </div>
-        </form>
+          <!-- Create Key Form -->
+          <form id="create-key-form" class="create-key-form">
+            <div class="create-key-inputs">
+              <input type="text" id="client-name-input" placeholder="Client Name (e.g. Ali)" required>
+              <select id="key-days-select" class="custom-select">
+                <option value="7">7 Days Trial</option>
+                <option value="30" selected>30 Days (Monthly)</option>
+                <option value="90">90 Days (3 Months)</option>
+                <option value="365">365 Days (1 Year)</option>
+                <option value="3650">Lifetime (10 Years)</option>
+              </select>
+              <button type="submit" class="generate-btn">
+                <i class="fa-solid fa-plus"></i> Generate Key
+              </button>
+            </div>
+          </form>
 
-        <!-- Newly Generated Key Alert Box -->
-        <div id="new-key-box" class="new-key-box hidden">
-          <div class="new-key-details">
-            <span class="new-key-label">Generated Key (Click to Copy):</span>
-            <code id="new-key-code" title="Click to copy">SS-XXXX-XXXX</code>
+          <!-- Newly Generated Key Alert Box -->
+          <div id="new-key-box" class="new-key-box hidden">
+            <div class="new-key-details">
+              <span class="new-key-label">Generated Key (Click to Copy):</span>
+              <code id="new-key-code" title="Click to copy">SS-XXXX-XXXX</code>
+            </div>
+            <button id="copy-key-btn" class="copy-btn"><i class="fa-solid fa-copy"></i> Copy Key</button>
           </div>
-          <button id="copy-key-btn" class="copy-btn"><i class="fa-solid fa-copy"></i> Copy Key</button>
+
+          <!-- All Keys Table -->
+          <div class="licenses-table-wrapper">
+            <h4>Active & Past Client Licenses:</h4>
+            <div class="table-scroll">
+              <table class="licenses-table">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>License Key</th>
+                    <th>Duration</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="licenses-table-body"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <!-- All Keys Table -->
-        <div class="licenses-table-wrapper">
-          <h4>Active & Past Client Licenses:</h4>
-          <div class="table-scroll">
-            <table class="licenses-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>License Key</th>
-                  <th>Duration</th>
-                  <th>Expires</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="licenses-table-body"></tbody>
-            </table>
+        <!-- TAB 2: STORYBLOCKS DEVELOPER API KEYS -->
+        <div id="tab-apikeys" class="admin-tab-content hidden">
+          <div class="admin-dash-header">
+            <h3><i class="fa-solid fa-server"></i> Storyblocks Developer API Keys</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">Create API keys for developers with customizable daily request limits.</p>
+          </div>
+
+          <form id="create-api-key-form" class="create-key-form">
+            <div class="create-key-inputs">
+              <input type="text" id="api-client-name" placeholder="Developer / Bot Name (e.g. AI Bot)" required>
+              <select id="api-days-select" class="custom-select">
+                <option value="30" selected>30 Days</option>
+                <option value="90">90 Days</option>
+                <option value="365">1 Year</option>
+                <option value="3650">Lifetime</option>
+              </select>
+              <select id="api-limit-select" class="custom-select">
+                <option value="50">50 Requests / Day</option>
+                <option value="100" selected>100 Requests / Day</option>
+                <option value="500">500 Requests / Day</option>
+                <option value="1000">1,000 Requests / Day</option>
+                <option value="5000">5,000 Requests / Day</option>
+                <option value="0">Unlimited Requests</option>
+              </select>
+              <button type="submit" class="generate-btn">
+                <i class="fa-solid fa-bolt"></i> Generate API Key
+              </button>
+            </div>
+          </form>
+
+          <!-- Newly Generated API Key Box -->
+          <div id="new-api-key-box" class="new-key-box hidden">
+            <div class="new-key-details">
+              <span class="new-key-label">Generated Storyblocks API Key:</span>
+              <code id="new-api-key-code" title="Click to copy">SS-SB-XXXX-XXXX-XXXX</code>
+            </div>
+            <button id="copy-api-key-btn" class="copy-btn"><i class="fa-solid fa-copy"></i> Copy API Key</button>
+          </div>
+
+          <!-- API Keys Table -->
+          <div class="licenses-table-wrapper">
+            <h4>Active Developer API Keys:</h4>
+            <div class="table-scroll">
+              <table class="licenses-table">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>API Key</th>
+                    <th>Daily Limit</th>
+                    <th>Today Used</th>
+                    <th>Total Req</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="api-keys-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: API DOCUMENTATION -->
+        <div id="tab-apidocs" class="admin-tab-content hidden">
+          <div class="api-docs-container">
+            <h3><i class="fa-solid fa-book"></i> Storyblocks REST API Documentation</h3>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+              Give these endpoints and instructions to developers or bots using your API key.
+            </p>
+
+            <div class="doc-block">
+              <div class="doc-endpoint"><span class="badge-get">GET</span> <code>/api/v1/storyblocks/search</code></div>
+              <p>Search millions of 4K & Full HD Storyblocks clips.</p>
+              <pre><code>GET https://stockstream-xmop.onrender.com/api/v1/storyblocks/search?api_key=YOUR_KEY&q=nature&page=1&num_results=20</code></pre>
+            </div>
+
+            <div class="doc-block">
+              <div class="doc-endpoint"><span class="badge-get">GET</span> <code>/api/v1/storyblocks/download</code></div>
+              <p>Get direct high-speed MP4 download links for any Storyblocks video ID.</p>
+              <pre><code>GET https://stockstream-xmop.onrender.com/api/v1/storyblocks/download?api_key=YOUR_KEY&video_id=352230917</code></pre>
+            </div>
+
+            <div class="doc-block">
+              <div class="doc-endpoint"><span class="badge-get">GET</span> <code>/api/v1/storyblocks/usage</code></div>
+              <p>Check remaining daily quota and total requests used.</p>
+              <pre><code>GET https://stockstream-xmop.onrender.com/api/v1/storyblocks/usage?api_key=YOUR_KEY</code></pre>
+            </div>
           </div>
         </div>
       </div>
