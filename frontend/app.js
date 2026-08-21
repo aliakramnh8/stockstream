@@ -281,9 +281,41 @@ function setupEventListeners() {
 }
 
 // --- ADMIN PORTAL LOGIC ---
+const ADMIN_SESSION_KEY = 'stockstream_admin_pass_v1';
+
+window.switchAdminTab = function(targetId, clickedBtn) {
+  document.querySelectorAll('.admin-subtab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.admin-tab-content').forEach(c => {
+    c.classList.add('hidden');
+    c.style.display = 'none';
+  });
+
+  if (clickedBtn) {
+    clickedBtn.classList.add('active');
+  } else {
+    const activeBtn = document.querySelector(`.admin-subtab[data-tab="${targetId}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  const targetContent = document.getElementById(targetId);
+  if (targetContent) {
+    targetContent.classList.remove('hidden');
+    targetContent.style.display = 'block';
+  }
+
+  if (targetId === 'tab-licenses') {
+    if (window.loadAdminLicenses) window.loadAdminLicenses();
+  } else if (targetId === 'tab-apikeys') {
+    if (window.loadAdminApiKeys) window.loadAdminApiKeys();
+  }
+};
+
 function setupAdminListeners() {
+  state.adminPassword = sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+
   const handleOpenAdmin = () => {
     adminModal.classList.remove('hidden');
+    state.adminPassword = sessionStorage.getItem(ADMIN_SESSION_KEY) || state.adminPassword || '';
     if (!state.adminPassword) {
       adminLoginView.classList.remove('hidden');
       adminDashboardView.classList.add('hidden');
@@ -339,6 +371,7 @@ function setupAdminListeners() {
       });
       if (res.ok) {
         state.adminPassword = pass;
+        sessionStorage.setItem(ADMIN_SESSION_KEY, pass);
         adminLoginError.classList.add('hidden');
         adminLoginView.classList.add('hidden');
         adminDashboardView.classList.remove('hidden');
@@ -356,38 +389,11 @@ function setupAdminListeners() {
   // Admin Logout
   adminLogoutBtn.addEventListener('click', () => {
     state.adminPassword = '';
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
     adminDashboardView.classList.add('hidden');
     adminLoginView.classList.remove('hidden');
     adminPassInput.value = '';
   });
-
-  // Admin Subtabs Switching
-  window.switchAdminTab = function(targetId, clickedBtn) {
-    document.querySelectorAll('.admin-subtab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.admin-tab-content').forEach(c => {
-      c.classList.add('hidden');
-      c.style.display = 'none';
-    });
-
-    if (clickedBtn) {
-      clickedBtn.classList.add('active');
-    } else {
-      const activeBtn = document.querySelector(`.admin-subtab[data-tab="${targetId}"]`);
-      if (activeBtn) activeBtn.classList.add('active');
-    }
-
-    const targetContent = document.getElementById(targetId);
-    if (targetContent) {
-      targetContent.classList.remove('hidden');
-      targetContent.style.display = 'block';
-    }
-
-    if (targetId === 'tab-licenses') {
-      loadAdminLicenses();
-    } else if (targetId === 'tab-apikeys') {
-      loadAdminApiKeys();
-    }
-  };
 
   const subtabBtns = document.querySelectorAll('.admin-subtab');
   subtabBtns.forEach(btn => {
@@ -404,11 +410,19 @@ function setupAdminListeners() {
     const name = clientNameInput.value.trim() || 'Client';
     const days = parseInt(keyDaysSelect.value, 10) || 30;
 
+    const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+    if (!currentPass) {
+      showToast('Please re-login to Admin');
+      adminLoginView.classList.remove('hidden');
+      adminDashboardView.classList.add('hidden');
+      return;
+    }
+
     try {
       const res = await fetch('/api/admin/create-license', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: state.adminPassword, client_name: name, days: days })
+        body: JSON.stringify({ password: currentPass, client_name: name, days: days })
       });
       const data = await res.json();
       if (data.success) {
@@ -417,6 +431,8 @@ function setupAdminListeners() {
         clientNameInput.value = '';
         showToast(`Key generated for ${name} (${days} Days)`);
         loadAdminLicenses();
+      } else {
+        showToast(data.detail || 'Error generating key');
       }
     } catch (err) {
       showToast('Error generating license key');
@@ -431,11 +447,19 @@ function setupAdminListeners() {
       const days = parseInt(apiDaysSelect.value, 10) || 30;
       const limit = parseInt(apiLimitSelect.value, 10);
 
+      const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
+      if (!currentPass) {
+        showToast('Please re-login to Admin');
+        adminLoginView.classList.remove('hidden');
+        adminDashboardView.classList.add('hidden');
+        return;
+      }
+
       try {
         const res = await fetch('/api/admin/create-api-key', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: state.adminPassword, client_name: name, days: days, daily_limit: limit })
+          body: JSON.stringify({ password: currentPass, client_name: name, days: days, daily_limit: limit })
         });
         const data = await res.json();
         if (data.success) {
@@ -444,6 +468,8 @@ function setupAdminListeners() {
           apiClientName.value = '';
           showToast(`Storyblocks API Key created for ${name} (${limit > 0 ? limit + ' req/day' : 'Unlimited'})`);
           loadAdminApiKeys();
+        } else {
+          showToast(data.detail || 'Error generating API key');
         }
       } catch (err) {
         showToast('Error generating API key');
