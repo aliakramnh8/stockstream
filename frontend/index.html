@@ -197,7 +197,7 @@
         <p>Please enter your Access License Key to unlock unlimited searches and 1-click 1080p downloads.</p>
       </div>
 
-      <form id="license-form" class="license-form">
+      <form id="license-form" class="license-form" onsubmit="event.preventDefault(); return false;">
         <div class="license-input-wrapper">
           <i class="fa-solid fa-key"></i>
           <input type="text" id="license-key-input" placeholder="e.g. SS-XXXX-XXXX-XXXX" autocomplete="off" required>
@@ -225,7 +225,7 @@
           <p>Enter your master password to generate & manage client subscription keys.</p>
         </div>
 
-        <form id="admin-login-form" class="license-form">
+        <form id="admin-login-form" class="license-form" onsubmit="event.preventDefault(); return false;">
           <div class="license-input-wrapper">
             <i class="fa-solid fa-lock"></i>
             <input type="password" id="admin-pass-input" placeholder="Enter Master Password" required>
@@ -252,7 +252,7 @@
             <h3><i class="fa-solid fa-key"></i> Generate Website Subscription Key</h3>
           </div>
           <!-- Create Key Form -->
-          <form id="create-key-form" class="create-key-form">
+          <form id="create-key-form" class="create-key-form" onsubmit="event.preventDefault(); handleCreateLicense(event); return false;">
             <div class="create-key-inputs">
               <input type="text" id="client-name-input" placeholder="Client Name (e.g. Ali)" required>
               <select id="key-days-select" class="custom-select">
@@ -262,7 +262,7 @@
                 <option value="365">365 Days (1 Year)</option>
                 <option value="3650">Lifetime (10 Years)</option>
               </select>
-              <button type="submit" class="generate-btn">
+              <button type="button" class="generate-btn" onclick="handleCreateLicense(event)">
                 <i class="fa-solid fa-plus"></i> Generate Key
               </button>
             </div>
@@ -305,7 +305,7 @@
             <p style="font-size: 12px; color: var(--text-muted);">Create API keys for developers with customizable daily request limits.</p>
           </div>
 
-          <form id="create-api-key-form" class="create-key-form">
+          <form id="create-api-key-form" class="create-key-form" onsubmit="event.preventDefault(); handleCreateApiKey(event); return false;">
             <div class="create-key-inputs">
               <input type="text" id="api-client-name" placeholder="Developer / Bot Name (e.g. AI Bot)" required>
               <select id="api-days-select" class="custom-select">
@@ -322,7 +322,7 @@
                 <option value="5000">5,000 Requests / Day</option>
                 <option value="0">Unlimited Requests</option>
               </select>
-              <button type="submit" class="generate-btn">
+              <button type="button" class="generate-btn" onclick="handleCreateApiKey(event)">
                 <i class="fa-solid fa-bolt"></i> Generate API Key
               </button>
             </div>
@@ -418,6 +418,6 @@
       }
     }
   </script>
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>
