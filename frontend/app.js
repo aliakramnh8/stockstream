@@ -482,6 +482,7 @@ async function loadAdminLicenses() {
     console.error('Error loading licenses:', err);
   }
 }
+window.loadAdminLicenses = loadAdminLicenses;
 
 function renderLicensesTable(licenses) {
   licensesTableBody.innerHTML = '';
@@ -523,6 +524,7 @@ async function loadAdminApiKeys() {
     console.error('Error loading API keys:', err);
   }
 }
+window.loadAdminApiKeys = loadAdminApiKeys;
 
 function renderApiKeysTable(apiKeys) {
   if (!apiKeysTableBody) return;
