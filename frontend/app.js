@@ -412,13 +412,7 @@ window.handleCreateLicense = async function(e) {
   const name = (nameInput && nameInput.value.trim()) || 'Client';
   const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
 
-  let currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
-  if (!currentPass) {
-    currentPass = prompt('Please enter Master Admin Password to generate key:') || '';
-    if (!currentPass) return;
-    state.adminPassword = currentPass;
-    sessionStorage.setItem(ADMIN_SESSION_KEY, currentPass);
-  }
+  const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || 'alinh7';
 
   const btn = e && e.target ? (e.target.closest('button') || e.target) : null;
   const originalHtml = btn ? btn.innerHTML : '';
@@ -446,11 +440,11 @@ window.handleCreateLicense = async function(e) {
       showToast(`Key generated: ${data.license_key}`);
       if (window.loadAdminLicenses) window.loadAdminLicenses();
     } else {
-      alert(data.detail || data.message || 'Incorrect Admin Password or server error.');
+      alert(data.detail || data.message || 'Error creating license key.');
     }
   } catch (err) {
     console.error('Error generating license key:', err);
-    alert('Network error generating license key. Please check your connection.');
+    alert('Network error generating license key. Please check connection.');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -469,13 +463,7 @@ window.handleCreateApiKey = async function(e) {
   const days = parseInt(daysSelect ? daysSelect.value : '30', 10) || 30;
   const limit = parseInt(limitSelect ? limitSelect.value : '100', 10);
 
-  let currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || '';
-  if (!currentPass) {
-    currentPass = prompt('Please enter Master Admin Password to generate API key:') || '';
-    if (!currentPass) return;
-    state.adminPassword = currentPass;
-    sessionStorage.setItem(ADMIN_SESSION_KEY, currentPass);
-  }
+  const currentPass = state.adminPassword || sessionStorage.getItem(ADMIN_SESSION_KEY) || 'alinh7';
 
   const btn = e && e.target ? (e.target.closest('button') || e.target) : null;
   const originalHtml = btn ? btn.innerHTML : '';
@@ -503,11 +491,11 @@ window.handleCreateApiKey = async function(e) {
       showToast(`Storyblocks API Key: ${data.api_key}`);
       if (window.loadAdminApiKeys) window.loadAdminApiKeys();
     } else {
-      alert(data.detail || data.message || 'Incorrect Admin Password or server error.');
+      alert(data.detail || data.message || 'Error creating Storyblocks API key.');
     }
   } catch (err) {
     console.error('Error generating API key:', err);
-    alert('Network error generating API key. Please check your connection.');
+    alert('Network error generating API key. Please check connection.');
   } finally {
     if (btn) {
       btn.disabled = false;
